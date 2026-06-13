@@ -1,0 +1,155 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model User {
+  id           String   @id @default(uuid())
+  email        String   @unique
+  passwordHash String?
+  displayName  String?
+  avatarUrl    String?
+  coverUrl     String?
+  role         String   @default("user")
+  inviteCode   String   @unique @default(uuid())
+  bio          String?
+  pushToken    String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  photos        Photo[]
+  folders       Folder[]
+  sentFriends   Friendship[]   @relation("requester")
+  recvFriends   Friendship[]   @relation("addressee")
+  notifications Notification[] @relation("recipient")
+  actorNotifs   Notification[] @relation("actor")
+  posts         Post[]
+  sentMessages  Message[]      @relation("sender")
+  recvMessages  Message[]      @relation("recipient")
+  comments      Comment[]
+
+  @@map("users")
+}
+
+model Photo {
+  id         String    @id @default(uuid())
+  uid        String
+  user       User      @relation(fields: [uid], references: [id], onDelete: Cascade)
+  url        String
+  latitude   Float?
+  longitude  Float?
+  takenAt    DateTime?
+  uploadedAt DateTime  @default(now())
+  hasGps     Boolean   @default(false)
+  folderId   String?
+  folder     Folder?   @relation(fields: [folderId], references: [id], onDelete: SetNull)
+
+  @@map("photos")
+}
+
+model Folder {
+  id             String    @id @default(uuid())
+  uid            String
+  user           User      @relation(fields: [uid], references: [id], onDelete: Cascade)
+  name           String
+  centerLat      Float
+  centerLng      Float
+  photoCount     Int       @default(0)
+  coverPhotoUrl  String?
+  country        String?
+  city           String?
+  district       String?
+  street         String?
+  firstVisitedAt DateTime?
+  lastVisitedAt  DateTime?
+  visibility     String    @default("private")
+  description    String?
+  reactions      Json      @default("{}")
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  photos   Photo[]
+  comments Comment[]
+
+  @@map("folders")
+}
+
+model Friendship {
+  id          String    @id @default(uuid())
+  requesterId String
+  addresseeId String
+  requester   User      @relation("requester", fields: [requesterId], references: [id], onDelete: Cascade)
+  addressee   User      @relation("addressee", fields: [addresseeId], references: [id], onDelete: Cascade)
+  status      String    @default("pending")
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime? @updatedAt
+
+  @@unique([requesterId, addresseeId])
+  @@map("friendships")
+}
+
+model Notification {
+  id          String   @id @default(uuid())
+  recipientId String
+  actorId     String
+  recipient   User     @relation("recipient", fields: [recipientId], references: [id], onDelete: Cascade)
+  actor       User     @relation("actor", fields: [actorId], references: [id], onDelete: Cascade)
+  type        String
+  entityId    String?
+  entityName  String?
+  isRead      Boolean  @default(false)
+  createdAt   DateTime @default(now())
+
+  @@map("notifications")
+}
+
+model Comment {
+  id        String   @id @default(uuid())
+  uid       String
+  user      User     @relation(fields: [uid], references: [id], onDelete: Cascade)
+  folderId  String?
+  postId    String?
+  folder    Folder?  @relation(fields: [folderId], references: [id], onDelete: Cascade)
+  post      Post?    @relation(fields: [postId], references: [id], onDelete: Cascade)
+  content   String
+  createdAt DateTime @default(now())
+
+  @@map("comments")
+}
+
+model Post {
+  id           String    @id @default(uuid())
+  uid          String
+  user         User      @relation(fields: [uid], references: [id], onDelete: Cascade)
+  type         String    @default("post")
+  content      String?
+  imageUrls    String[]
+  reactions    Json      @default("{}")
+  commentCount Int       @default(0)
+  shareCount   Int       @default(0)
+  visibility   String    @default("friends")
+  expiresAt    DateTime?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  comments Comment[]
+
+  @@map("posts")
+}
+
+model Message {
+  id             String   @id @default(uuid())
+  conversationId String
+  senderId       String
+  recipientId    String
+  sender         User     @relation("sender", fields: [senderId], references: [id], onDelete: Cascade)
+  recipient      User     @relation("recipient", fields: [recipientId], references: [id], onDelete: Cascade)
+  content        String
+  createdAt      DateTime @default(now())
+
+  @@index([conversationId, createdAt])
+  @@map("messages")
+}
