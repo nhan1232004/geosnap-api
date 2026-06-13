@@ -35,14 +35,14 @@ export async function messageRoutes(fastify: FastifyInstance, io: SocketServer) 
       last_at: Date;
       other_user_id: string;
     }[]>`
-      SELECT DISTINCT ON (conversation_id)
-        conversation_id,
+      SELECT DISTINCT ON ("conversationId")
+        "conversationId" as conversation_id,
         content as last_message,
-        created_at as last_at,
-        CASE WHEN sender_id = ${userId} THEN recipient_id ELSE sender_id END as other_user_id
+        "createdAt" as last_at,
+        CASE WHEN "senderId" = ${userId} THEN "recipientId" ELSE "senderId" END as other_user_id
       FROM messages
-      WHERE sender_id = ${userId} OR recipient_id = ${userId}
-      ORDER BY conversation_id, created_at DESC
+      WHERE "senderId" = ${userId} OR "recipientId" = ${userId}
+      ORDER BY "conversationId", "createdAt" DESC
     `
 
     // Get other users' profiles
