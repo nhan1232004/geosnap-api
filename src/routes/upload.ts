@@ -17,7 +17,6 @@ async function streamToBuffer(stream: NodeJS.ReadableStream): Promise<Buffer> {
 }
 
 import { readFileSync, existsSync } from 'fs'
-import { join } from 'path'
 
 export async function uploadRoutes(fastify: FastifyInstance) {
   // GET /uploads/:filename - serve local files
