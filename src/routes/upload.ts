@@ -16,7 +16,22 @@ async function streamToBuffer(stream: NodeJS.ReadableStream): Promise<Buffer> {
   return Buffer.concat(chunks)
 }
 
+import { readFileSync, existsSync } from 'fs'
+import { join } from 'path'
+
 export async function uploadRoutes(fastify: FastifyInstance) {
+  // GET /uploads/:filename - serve local files
+  fastify.get('/uploads/:filename', async (req: FastifyRequest, reply: FastifyReply) => {
+    const { filename } = req.params as { filename: string }
+    const filePath = join(process.cwd(), 'uploads', filename)
+    if (!existsSync(filePath)) {
+      return reply.status(404).send({ error: 'File not found' })
+    }
+    const buffer = readFileSync(filePath)
+    reply.header('Content-Type', 'image/jpeg')
+    return reply.send(buffer)
+  })
+
   // POST /api/v1/upload/photo
   fastify.post('/api/v1/upload/photo', { preHandler: authenticate }, async (req: FastifyRequest, reply: FastifyReply) => {
     const userId = (req as AuthenticatedRequest).userId

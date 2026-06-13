@@ -16,11 +16,31 @@ const PUBLIC_URL = process.env.R2_PUBLIC_URL!
 
 export type UploadType = 'photos' | 'avatars' | 'covers' | 'posts' | 'stories'
 
+import { writeFileSync, mkdirSync, existsSync } from 'fs'
+import { join } from 'path'
+
 export async function uploadFile(
   buffer: Buffer,
   key: string,
   contentType: string
 ): Promise<string> {
+  const isPlaceholder = !process.env.R2_ACCOUNT_ID || process.env.R2_ACCOUNT_ID === 'placeholder'
+
+  if (isPlaceholder) {
+    const uploadsDir = join(process.cwd(), 'uploads')
+    if (!existsSync(uploadsDir)) {
+      mkdirSync(uploadsDir, { recursive: true })
+    }
+    const filename = key.split('/').pop() || `${Date.now()}.jpg`
+    const filePath = join(uploadsDir, filename)
+    writeFileSync(filePath, buffer)
+
+    const backendUrl = process.env.GOOGLE_REDIRECT_URI
+      ? process.env.GOOGLE_REDIRECT_URI.replace('/auth/google/callback', '')
+      : 'http://localhost:3001'
+    return `${backendUrl}/uploads/${filename}`
+  }
+
   await s3.send(
     new PutObjectCommand({
       Bucket: BUCKET,
